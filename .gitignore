@@ -28,5 +28,31 @@ go.work.sum
 .env
 
 # Editor/IDE
-# .idea/
-# .vscode/
+.idea/
+.vscode/
+*.swp
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+.pytest_cache/
+
+# Go
+vendor/
+*.test
+
+# Node
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data
+*.log
+*.zip
