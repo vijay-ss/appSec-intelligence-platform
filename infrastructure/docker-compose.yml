@@ -261,7 +261,7 @@ services:
     environment:
       KAFKA_BROKERS: redpanda:9092
       REDIS_ADDR: redis:6379
-      OSV_POLL_INTERVAL_SECONDS: "600"
+      OSV_POLL_INTERVAL_SECONDS: "300"
     depends_on:
       redpanda:
         condition: service_healthy

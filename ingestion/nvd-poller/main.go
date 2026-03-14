@@ -91,7 +91,6 @@ func poll(rdb *redis.Client, producer *sharedkafka.Producer, apiKey string) {
 
 	published := 0
 	for _, item := range cves {
-		fmt.Println(item)
 		event := normalise(item)
 		if event == nil {
 			continue

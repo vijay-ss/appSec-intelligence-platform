@@ -10,7 +10,7 @@ COPY shared/ ./shared/
 COPY nvd-poller/ ./nvd-poller/
 
 RUN CGO_ENABLED=1 GOOS=linux \
-    go build -ldflags="-s -w" -o /nvd-poller ./nvd-poller/main.go
+    go build -ldflags="-s -w" -o /nvd-poller ./nvd-poller/
 
 
 FROM debian:bookworm-slim

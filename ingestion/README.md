@@ -204,9 +204,15 @@ Note `affected_package` and `affected_version_range` are intentionally empty —
 
 [OSV.dev](https://osv.dev) is the primary source for package-level version data. It maps CVE IDs to exact package names and affected version lists across six ecosystems: PyPI, npm, Maven, Go, crates.io, and RubyGems.
 
-**First run — bulk load:** Downloads the complete OSV corpus from Google Cloud Storage (`https://osv-vulnerabilities.storage.googleapis.com/{ecosystem}/all.zip`). A Redis flag (`osv:bulk_loaded`) is set after completion so subsequent restarts skip the bulk load.
+**First run — bulk load:** Downloads the complete OSV corpus from Google Cloud Storage (`https://osv-vulnerabilities.storage.googleapis.com/{ecosystem}/all.zip`). All six ecosystems are downloaded concurrently. The highest `modified` timestamp seen across all records is written to Redis as the incremental cursor, then a flag (`osv:bulk_loaded`) is set so subsequent restarts skip the bulk load entirely.
 
-**Subsequent runs — incremental:** Polls the OSV query API every 10 minutes.
+**Subsequent runs — incremental:** Every 10 minutes, for each ecosystem:
+1. Fetches `modified_id.csv` from GCS — a lightweight (~200KB) index of `(id, modified_time)` pairs sorted newest-first
+2. Reads entries until `modified_time <= cursor`, collecting only new IDs
+3. Fetches each new record by ID from the OSV REST API (`GET /v1/vulns/{id}`)
+4. Publishes to Kafka and advances the cursor
+
+Note: `POST /v1/query` is not used for polling — that endpoint requires a specific package+version and does not support time-based filtering. The `modified_id.csv` index + `GET /v1/vulns/{id}` is the correct OSV pattern for tracking recent changes.
 
 **What it emits:**
 ```json
