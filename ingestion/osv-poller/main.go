@@ -8,10 +8,14 @@
 //    Tracks the highest `modified` timestamp seen across all records and writes it
 //    to Redis as the incremental cursor, then sets osv:bulk_loaded = "1".
 //
-//  Phase 2 — REST API Incremental Poll (runs forever)
-//    Reads the cursor from Redis, calls the OSV REST API with modified_since=cursor,
-//    paginates through results, publishes new/updated records, and advances the cursor.
-//    Runs every OSV_POLL_INTERVAL_SECONDS (default 600).
+//  Phase 2 — Incremental Poll (runs forever)
+//    For each ecosystem, fetches the lightweight modified_id.csv from GCS — a
+//    newline-delimited file of (id, modified_time) pairs sorted newest-first.
+//    Reads entries until modified_time <= cursor, then fetches each new record
+//    by ID from the OSV REST API (GET /v1/vulns/{id}) and publishes to Kafka.
+//    The correct pattern is:
+//      1. modified_id.csv  — lightweight GCS index to discover changed IDs
+//      2. GET /v1/vulns/{id} — REST API to fetch the full record per ID
 //
 // The cursor is the only handoff between the two phases. Phase 2 does not know
 // or care whether the cursor was written by Phase 1 or by a previous Phase 2 iteration.
