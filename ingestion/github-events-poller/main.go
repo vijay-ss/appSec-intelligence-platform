@@ -38,27 +38,35 @@ const (
 
 var targetRepos = []string{
 	"psf/requests",
-	"django/django",
-	"fastapi/fastapi",
-	"encode/httpx",
-	"apache/airflow",
-	"pydantic/pydantic",
-	"pallets/flask",
-	"vercel/next.js",
-	"microsoft/vscode",
-	"expressjs/express",
-	"nodejs/node",
-	"kubernetes/kubernetes",
-	"hashicorp/terraform",
-	"renovatebot/renovate",
-	"home-assistant/core",
+    "pydantic/pydantic",
+    "pytest-dev/pytest",
+    "pypa/pip",
+    "encode/httpx",
+    "django/django",
+    "fastapi/fastapi",
+    "pallets/werkzeug",
+    "pallets/click",
+    "celery/celery",
+    "sqlalchemy/sqlalchemy",
+    "aio-libs/aiohttp",
+    "urllib3/urllib3",
+    "boto/boto3",
+    "aws/aws-cli",
 }
 
 // depBumpRe extracts package and version info from Dependabot PR titles.
-// example: "bump requests from 4.17.21 to 4.17.22" -> Package: requests, From: 4.17.21, To: 4.17.22
 var depBumpRe = regexp.MustCompile(
 	`(?i)bump (?P<pkg>[\w\-\.\/]+) from (?P<from>[\d\.]+) to (?P<to>[\d\.]+)`,
 )
+
+// ghPR represents the GitHub Pull Requests API response shape
+type ghPR struct {
+    Number   int    `json:"number"`
+    Title    string `json:"title"`
+    MergedAt *string `json:"merged_at"`
+    User     struct{ Login string `json:"login"` } `json:"user"`
+    Head     struct{ Ref string `json:"ref"` } `json:"head"`
+}
 
 type ghEvent struct {
 	Type  string `json:"type"`
@@ -110,13 +118,6 @@ func main() {
 		pollAll(rdb, producer, token)
 	}
 	
-}
-
-func getenv(key, fallback string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return fallback
 }
 
 // pollAll iterates through all target repos sequentially, fetching events for
@@ -176,7 +177,7 @@ func pollAll(rdb *redis.Client, producer *sharedkafka.Producer, token string) {
 func fetchEvents(repo, token, etag string) ([]ghEvent, string, error) {
 	req, _ := http.NewRequest(
 		http.MethodGet,
-		"https://api.github.com/repos/"+repo+"/events?per_page=100",
+		"https://api.github.com/repos/"+repo+"/pulls?state=closed&per_page=100&sort=updated&direction=desc",
 		nil,
 	)
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
@@ -210,11 +211,54 @@ func fetchEvents(repo, token, etag string) ([]ghEvent, string, error) {
 	}
 	
 	newETag := resp.Header.Get("ETag")
-	
 	body, _ := io.ReadAll(resp.Body)
-	var events []ghEvent
-	json.Unmarshal(body, &events)
 	
+	var prs []ghPR
+	if err := json.Unmarshal(body, &prs); err != nil {
+		return nil, "", err
+	}
+	
+	events := make([]ghEvent, 0, len(prs))
+	for _, pr := range prs {
+		if pr.MergedAt == nil {
+			continue
+		}
+		
+		events = append(events, ghEvent{
+			Type: "PullRequestEvent",
+			Actor: struct{ Login string `json:"login"` }{
+				Login: pr.User.Login,
+			},
+			Repo: struct{ Name string `json:"name"`}{
+				Name: repo,
+			},
+			Payload: struct {
+                Action      string `json:"action"`
+                PullRequest struct {
+                    Number   int    `json:"number"`
+                    Title    string `json:"title"`
+                    Merged   bool   `json:"merged"`
+                    MergedAt string `json:"merged_at"`
+                    Head     struct{ Ref string `json:"ref"` } `json:"head"`
+                } `json:"pull_request"`
+            }{
+                Action: "merged",
+                PullRequest: struct {
+                    Number   int    `json:"number"`
+                    Title    string `json:"title"`
+                    Merged   bool   `json:"merged"`
+                    MergedAt string `json:"merged_at"`
+                    Head     struct{ Ref string `json:"ref"` } `json:"head"`
+                }{
+                    Number:   pr.Number,
+                    Title:    pr.Title,
+                    Merged:   true,
+                    MergedAt: *pr.MergedAt,
+                    Head:     struct{ Ref string `json:"ref"` }{Ref: pr.Head.Ref},
+                },
+            },
+		})
+	}
 	return events, newETag, nil
 }
 
@@ -239,32 +283,32 @@ func writeETag(ctx context.Context, rdb *redis.Client, repo, etag string) {
 
 // parseDepChange returns a DependencyChangeEvent for a merged Dependabot/Renovate PR
 func parseDepChange(event ghEvent) *schemas.DependencyChangeEvent {
-	if event.Type != "PullRequestEvent" ||event.Payload.Action != "closed" {
+	if event.Type != "PullRequestEvent" || event.Payload.Action != "merged" {
 		return nil
 	}
-	
+
 	pr := event.Payload.PullRequest
-	if !pr.Merged {
-		return nil
-	}
-	
+
 	login := strings.ToLower(event.Actor.Login)
 	if !strings.Contains(login, "dependabot") && !strings.Contains(login, "renovate") {
 		return nil
 	}
-	
+
 	eco := schemas.EcosystemFromBranch(pr.Head.Ref)
 	if eco == "" {
 		return nil
 	}
-	
+
 	pkg, fromVer, toVer := parseBumpTitle(pr.Title)
-	if pkg == "" ||toVer == "" {
+	if pkg == "" || toVer == "" {
 		return nil
 	}
-	
-	mergedAt, _ := time.Parse(time.RFC3339, pr.MergedAt)
-	
+
+	mergedAt, err := time.Parse(time.RFC3339, pr.MergedAt)
+	if err != nil {
+		mergedAt = time.Now().UTC()
+	}
+
 	return &schemas.DependencyChangeEvent{
 		EventID:      uuid.NewString(),
 		Source:       "github_events_api",
@@ -300,4 +344,11 @@ func parseBumpTitle(title string) (pkg, from, to string) {
 	}
 
 	return
+}
+
+func getenv(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
 }

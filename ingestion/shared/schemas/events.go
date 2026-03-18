@@ -2,7 +2,10 @@
 // All events are serialised to JSON before being published to Kafka.
 package schemas
 
-import "time"
+import (
+	"time"
+	"strings"
+)
 
 // VulnerabilityEvent is the normalised CVE record emitted by the NVD and OSV pollers.
 // NVD is the authoritative source for CVSS scores and CWE IDs.
@@ -73,19 +76,26 @@ func SeverityFromCVSS(score float64) string {
 // EcosystemFromBranch maps a Dependabot branch prefix to a normalised ecosystem name.
 func EcosystemFromBranch(branchRef string) string {
 	prefixes := map[string]string{
-		"dependabot/pip/":          "pypi",
-		"dependabot/npm_and_yarn/": "npm",
-		"dependabot/go_modules/":   "go",
-		"dependabot/maven/":        "maven",
-		"dependabot/cargo/":        "cargo",
-		"dependabot/bundler/":      "rubygems",	
-	}
-	for prefix, eco := range prefixes {
-		if len(branchRef) >= len(prefix) && branchRef[:len(prefix)] == prefix {
-			return eco
-		}
-	}
-	return ""
+        "dependabot/pip/":          "pypi",
+        "dependabot/npm_and_yarn/": "npm",
+        "dependabot/go_modules/":   "go",
+        "dependabot/maven/":        "maven",
+        "dependabot/cargo/":        "cargo",
+        "dependabot/bundler/":      "rubygems",
+        "dependabot/uv/":           "pypi",
+        "renovate/pip/":            "pypi",
+        "renovate/npm/":            "npm",
+        "renovate/go/":             "go",
+        "renovate/maven/":          "maven",
+        "renovate/cargo/":          "cargo",
+        "renovate/rubygems/":       "rubygems",
+    }
+    for prefix, eco := range prefixes {
+        if strings.HasPrefix(branchRef, prefix) {
+            return eco
+        }
+    }
+    return ""
 }
 
 // ManifestForEcosystem returns the canonical manifest filename for an ecosystem.
