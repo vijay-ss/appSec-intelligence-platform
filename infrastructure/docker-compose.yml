@@ -304,6 +304,7 @@ services:
     image: appsec-github-events-poller:latest
     environment:
       KAFKA_BROKERS: redpanda:9092
+      REDIS_ADDR: redis:6379
       GITHUB_TOKEN: "${GITHUB_TOKEN:-}"
       GITHUB_POLL_INTERVAL_SECONDS: "60"
     depends_on:

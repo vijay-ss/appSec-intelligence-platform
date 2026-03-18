@@ -7,7 +7,7 @@
         flink corpus scenario load-test \
         test rebuild shell
 
-COMPOSE      = docker compose -f infrastructure/docker-compose.yml
+COMPOSE      = docker compose -f infrastructure/docker-compose.yml --env-file .env
 SCENARIO    ?= critical_rce
 
 # ── Help ─────────────────────────────────────────────────────────────────────

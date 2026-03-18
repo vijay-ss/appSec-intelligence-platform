@@ -1,10 +1,29 @@
 # AppSec Intelligence Platform
 
-A real-time application security platform that detects vulnerable dependencies the moment a CVE is published — not the next time a nightly scanner runs.
+TLDR; A real-time application security platform that detects vulnerable dependencies the moment a CVE is published.
 
-The platform streams CVEs from NVD and OSV, joins them against a live service dependency graph maintained by Apache Flink (PyFlink), and triggers an AI triage agent that fetches the affected source code, confirms exploitability, and generates a remediation report. Results are exposed via an MCP server queryable from VS Code in natural language.
+Most security tools work on a schedule — they scan your codebase nightly, weekly, or on each CI run. That means when a critical CVE drops at 9am, your engineering team might not know they're exposed until the next morning.
 
-**Detection lag: hours to days (batch scanning) → under 30 minutes (this platform).**
+This platform closes that gap. It watches two live vulnerability feeds (NVD and OSV), tracks the dependency manifests of your services in real time by monitoring merged Dependabot and Renovate PRs on GitHub, and joins the two streams together using Apache Flink. The moment a new CVE is published that matches a package version any of your services is running, it fires.
+
+From there, an AI triage agent takes over. It fetches the actual source code of the affected service, confirms whether the vulnerable code path is reachable, looks up the safe upgrade version, and writes a structured report — exploitability verdict, blast radius, remediation command, and SLA deadline — directly to the database. A separate MCP server exposes all of this as nine queryable tools so engineers can ask questions in plain English from VS Code: *"which services have critical vulnerabilities past their SLA?"* or *"what's the safe upgrade path for requests 2.28.0?"*.
+
+The full pipeline — from CVE publication to triage report — runs in under 30 minutes. A nightly scanner would catch the same finding 12–36 hours later.
+
+---
+
+## How it works end to end
+
+1. **Ingestion** — Go pollers continuously pull from NVD (CVSS scores), OSV (package version ranges), and the GitHub Events API (merged dependency PRs). On first start, OSV performs a bulk load of its full vulnerability corpus from GCS, then switches to lightweight incremental polling.
+
+2. **Stream processing** — PyFlink normalises and deduplicates the raw events, maintains a live dependency graph for every service (keyed state, RocksDB-backed), and joins incoming CVEs against it using broadcast state. Matches are scored by blast radius — a composite of CVSS severity, whether the service is customer-facing, compliance scope, and PII handling — and routed to severity-tiered Kafka topics.
+
+3. **AI triage** — A LangGraph agent consumes each match, retrieves relevant CVE context via RAG, fetches the affected source files from GitHub, and makes two LLM calls: one to assess exploitability, one to synthesise a structured report. The LLM only reasons over evidence already gathered — it is not asked to recall facts from training. Runs locally on `qwen2.5-coder:7b` via Ollama; swap to Claude Sonnet in production with one env var change.
+
+4. **Query layer** — An MCP server exposes the platform's findings as 9 tools queryable from any MCP-compatible client (VS Code + Cline, Claude Desktop). No AI reasoning happens here — it translates tool calls into PostgreSQL queries and Qdrant searches against data the agents already produced.
+
+The nine tools are: `get_vulnerability_exposure`, `get_cve_details`, `get_affected_services`, `get_remediation_path`, `get_team_exposure`, `get_compliance_gaps`, `get_security_posture_summary`, `get_dependency_graph`, and `search_vulnerabilities` (semantic search over triage reports via Qdrant). Full tool documentation in [`mcp-server/README.md`](mcp-server/README.md).
+
 
 ---
 
