@@ -405,6 +405,7 @@ services:
       POSTGRES_URL: postgresql://appsec:appsec@postgres:5432/appsec
       HUM_RATE: "2.0"
       SEED_REGISTRY: "true"
+      PYTHONUNBUFFERED: "1"
     depends_on:
       redpanda:
         condition: service_healthy

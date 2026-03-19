@@ -76,11 +76,11 @@ build:
 infra-up:
 	@echo "Starting infrastructure (Kafka, Postgres, MinIO, Qdrant, Redis, Ollama)..."
 	$(COMPOSE) up -d \
-	  redpanda minio minio-init postgres qdrant redis \
-	  prometheus grafana
+	  redpanda minio minio-init postgres qdrant redis redis-commander \
+	  prometheus grafana redpanda redpanda-console
 	@echo ""
 	@echo "Infrastructure ready:"
-	@echo "  Redpanda Console  http://localhost:8080"
+	@echo "  Redpanda Console  http://localhost:8083"
 	@echo "  MinIO Console     http://localhost:9001"
 	@echo "  Grafana           http://localhost:3000"
 
@@ -88,7 +88,7 @@ pollers-up:
 	@echo "Starting Go ingestion pollers..."
 	$(COMPOSE) up -d nvd-poller osv-poller github-events-poller synthetic-generator
 	@echo ""
-	@echo "Pollers running. Watch events in Redpanda Console: http://localhost:8080"
+	@echo "Pollers running. Watch events in Redpanda Console: http://localhost:8083"
 	@echo "Topics to watch: vulns.nvd.raw  vulns.osv.raw  deps.changes"
 
 flink-up:
