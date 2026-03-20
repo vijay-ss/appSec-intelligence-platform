@@ -53,7 +53,7 @@ nvd-poller  | {"service":"nvd-poller","level":"info","event":"published event","
 
 ### Verify events are arriving in Kafka
 
-Open the Redpanda console at [http://localhost:8080](http://localhost:8080) → **Topics**. You should see messages on:
+Open the Redpanda console at [http://localhost:8083](http://localhost:8083) → **Topics**. You should see messages on:
 
 - `vulns.nvd.raw` — NVD CVE events
 - `vulns.osv.raw` — OSV vulnerability events

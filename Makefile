@@ -54,7 +54,7 @@ help:
 	@echo "  make clean        Stop all containers AND delete all volumes (destructive)"
 	@echo ""
 	@echo "Service UIs"
-	@echo "  Redpanda Console   http://localhost:8080"
+	@echo "  Redpanda Console   http://localhost:8083"
 	@echo "  Flink Dashboard    http://localhost:8081"
 	@echo "  MinIO Console      http://localhost:9001  (minioadmin / minioadmin)"
 	@echo "  Grafana            http://localhost:3000  (admin / admin)"
@@ -76,8 +76,8 @@ build:
 infra-up:
 	@echo "Starting infrastructure (Kafka, Postgres, MinIO, Qdrant, Redis, Ollama)..."
 	$(COMPOSE) up -d \
-	  redpanda minio minio-init postgres qdrant redis redis-commander \
-	  prometheus grafana redpanda redpanda-console
+	  redpanda redpanda-console minio minio-init postgres qdrant redis redis-commander \
+	  prometheus grafana
 	@echo ""
 	@echo "Infrastructure ready:"
 	@echo "  Redpanda Console  http://localhost:8083"

@@ -32,6 +32,14 @@ make test               # Run all unit tests (PyFlink + Go in containers)
 make rebuild s=<svc>    # Rebuild and restart one service
 make shell s=<svc>      # Open shell inside a running container
 make logs s=<svc>       # Tail logs from one service
+make ps                 # Show running containers and status
+
+# Demo
+make scenario SCENARIO=<name>   # Fire a demo scenario (default: critical_rce)
+make load-test                    # Replay 2024-01 at full speed via archive-replayer
+
+# Setup
+make corpus                      # Run corpus-builder (index OSV data into Qdrant)
 ```
 
 ### Running a Single Test
@@ -215,7 +223,7 @@ except Exception as e:
 
 | Service | URL |
 |---------|-----|
-| Redpanda Console | http://localhost:8080 |
+| Redpanda Console | http://localhost:8083 |
 | Flink Dashboard | http://localhost:8081 |
 | MinIO Console | http://localhost:9001 (minioadmin/minioadmin) |
 | Grafana | http://localhost:3000 (admin/admin) |
@@ -230,3 +238,20 @@ Copy `.env.example` to `.env` and configure:
 - `REDIS_ADDR` — Redis address
 - `POSTGRES_URL` — PostgreSQL connection string
 - `NVD_API_KEY` — NIST NVD API key (optional, improves rate limits)
+
+### Synthetic Generator
+- `HUM_RATE` — Background events per second (default: 2.0)
+- `SEED_REGISTRY` — Seed 50-service registry on startup (default: true)
+
+### Archive Replayer
+- `REPLAYER_MODE` — seed | loadtest | continuous (default: continuous)
+- `REPLAYER_DELAY_MS` — Milliseconds between events (default: 500)
+
+### Docker Compose Profiles
+
+Some services are disabled by default and must be enabled with profiles:
+
+| Profile | Service | Command |
+|---------|---------|---------|
+| `replay` | archive-replayer | `docker compose --profile replay up -d` |
+| `setup` | corpus-builder | `docker compose --profile setup run --rm corpus-builder` |
