@@ -192,9 +192,10 @@ load-test:
 test:
 	@echo "Running PyFlink operator unit tests (no cluster needed)..."
 	$(COMPOSE) run --rm --no-deps \
+	  --entrypoint python \
 	  -e PYTHONPATH=/opt/flink/userjobs \
 	  flink-jobmanager \
-	  python -m pytest /opt/flink/userjobs/tests/ -v
+	  -m pytest /opt/flink/userjobs/tests/ -v
 	@echo ""
 	@echo "Running Go unit tests..."
 	docker run --rm \

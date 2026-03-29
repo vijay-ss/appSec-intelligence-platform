@@ -166,7 +166,10 @@ func fetchCVEs(startDate, endDate, apiKey string) ([]nvdItem, error) {
 		return nil, fmt.Errorf("nvd returned HTTP %d", resp.StatusCode)
 	}
 
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read body: %w", err)
+	}
 	var result nvdResponse
 	if err := json.Unmarshal(body, &result); err != nil {
 		return nil, err
