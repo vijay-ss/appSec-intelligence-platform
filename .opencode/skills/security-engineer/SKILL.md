@@ -111,47 +111,29 @@ find . -name "*.pem" -o -name "*.key" -o -name "*.p12" -o -name "*id_rsa*" 2>/de
 
 ### Git Secrets Finding Format
 
-**For secrets IN git history (CRITICAL):**
+Use the standard finding template above. For git history secrets specifically:
+
 ```
-═══════════════════════════════════════════════════════════════
-[CRITICAL] Git History: AWS Access Key Found in Commit
-──────────────────────────────────────────────────────────────
-Commit: abc1234 (main)
-File: src/config.py
-Date: 2024-01-15 10:30:00
-Author: developer@example.com
-Issue: AWS_ACCESS_KEY_ID committed to git history
-        This key is still in git history even if removed from current branch
-Proposed Fix:
-  1. IMMEDIATELY rotate the exposed AWS access key in AWS Console
-  2. Use git-filter-repo or BFG to remove from history:
-     git filter-repo --path-glob '*.py' --invert-paths --force
-     OR
-     java -jar bfg.jar --delete-files *.py --no-blob-landscape
-  3. Force push: git push origin --force --all
-  4. Warn all team members to re-clone the repository
-  5. Add .env to .gitignore and create .env.example template
-  6. Rotate any other credentials that were in the same file
-═══════════════════════════════════════════════════════════════
+SEC-001  🔴 CRITICAL
+File:  src/config.py:45 (commit abc1234)
+Issue: AWS_ACCESS_KEY committed to git history
+
+Context:
+  Commit: abc1234 (main)
+  Author: developer@example.com
+  Date: 2024-01-15
+
+Fix:  Rotate key immediately, use git-filter-repo to remove
 ```
 
-**For secrets in .gitignore files (HIGH - not committed but still risky):**
+For .env secrets (HIGH):
+
 ```
-═══════════════════════════════════════════════════════════════
-[HIGH] Working Tree: Secrets Found in .env File
-──────────────────────────────────────────────────────────────
-File: .env:22
-Issue: Real credentials found in .env file (gitignored)
-        While not committed to git, these are risky:
-        - IDEs and backup tools may expose them
-        - Accidental un-ignore could commit them
-        - Shared machines could leak them
-Proposed Fix:
-  1. Use placeholder values in .env for development
-  2. Use environment-specific secrets management
-  3. Consider 1Password CLI or similar for local dev
-  4. Ensure .gitignore is correctly configured
-═══════════════════════════════════════════════════════════════
+SEC-002  🟠 HIGH
+File:  .env:22
+Issue: Real credentials in gitignored .env file
+
+Fix:  Use placeholders, verify .gitignore is configured
 ```
 
 ### Common Accidentally Committed Files
@@ -375,74 +357,58 @@ Connectionstring|connection_string.*=.*['\"]                               # DB 
 
 ## Output Format
 
-### ANSI Color Codes (Use When TTY Detected)
+### Severity Icons
 
-| Severity | Color | Prefix |
-|----------|-------|--------|
-| CRITICAL | Red (bold) | 🔴 |
-| HIGH | Orange | 🟠 |
-| MEDIUM | Yellow | 🟡 |
-| LOW | Blue | 🟢 |
-| INFO | Dim/Gray | 🔵 |
-| SUCCESS | Green | ✓ |
+| Severity | Icon |
+|----------|------|
+| CRITICAL | 🔴 |
+| HIGH | 🟠 |
+| MEDIUM | 🟡 |
+| LOW | 🟢 |
+| SUCCESS | ✓ |
 
-**Auto-detect TTY:** If output is to a terminal, use colors. If piped/redirected, strip colors.
+### Finding Output Template
 
-### Terminal Output Template
+Use this format for each finding:
 
 ```
-╔════════════════════════════════════════════════════════════════════╗
-║  🛡️  SECURITY AUDIT  •  [DATE]                                  ║
-╠════════════════════════════════════════════════════════════════════╣
-║  SCORE: [XX]/100  [████████████░░░░░░░░░░░]  [LABEL]            ║
-╚════════════════════════════════════════════════════════════════════╝
+──────────────────────────────────────
+SCAN RESULTS — X findings
+──────────────────────────────────────
 
-SUMMARY: [X] critical, [X] high, [X] medium, [X] low, [X] info
+SEC-001  🟠 HIGH
+File:  path/to/file.go:123
+Issue: Brief description of the issue
 
-═══════════════════════════════════════════════════════════════
-FINDINGS
-═══════════════════════════════════════════════════════════════
+Code:
+```go
+// relevant code snippet
+```
 
-🔴 CRITICAL ([count])
-┌─────────────────────────────────────────────────────────────┐
-│ [title]                                                   │
-│   File: [file]:[line]                                     │
-│   Fix: [one-line fix]                                     │
-└─────────────────────────────────────────────────────────────┘
+Fix:  Concise fix description
 
-🟠 HIGH ([count])
-┌─────────────────────────────────────────────────────────────┐
-│ [title]                                                   │
-│   File: [file]                                            │
-│   Fix: [one-line fix]                                     │
-└─────────────────────────────────────────────────────────────┘
-
-🟡 MEDIUM ([count])
-┌─────────────────────────────────────────────────────────────┐
-│ [title]                                                   │
-│   File: [file]                                            │
-│   Fix: [one-line fix]                                     │
-└─────────────────────────────────────────────────────────────┘
-
-═══════════════════════════════════════════════════════════════
+──────────────────────────────────────
 POSITIVE FINDINGS
-═══════════════════════════════════════════════════════════════
-  ✓ [Finding 1]
-  ✓ [Finding 2]
-  ✓ [Finding 3]
+──────────────────────────────────────
+  ✓ Finding 1
+  ✓ Finding 2
+
+──────────────────────────────────────
+ACTIONS (priority order)
+──────────────────────────────────────
+  1. SEC-001: Brief action
+  2. SEC-002: Brief action
+──────────────────────────────────────
 ```
 
-### Finding Template (Detailed)
+### Key Formatting Rules
 
-```
-═══════════════════════════════════════════════════════════════
-[SEVERITY_ICON] [SEVERITY]: [Title]
-───────────────────────────────────────────────────────────────
-File: [file]:[line]
-Issue: [one-line description]
-Fix:   [actionable fix in 1-2 lines]
-═══════════════════════════════════════════════════════════════
-```
+- **Box width:** ~38 characters (narrow-screen friendly)
+- **Code snippets:** Use fenced code blocks with language tag (```go, ```dockerfile, etc.)
+- **File paths:** Shorten common prefixes (e.g., `ingestion/nvd-poller/` → `nvd-poller/`)
+- **Fix lines:** Single concise line
+- **Findings:** Numbered SEC-XXX format (SEC-001, SEC-002, etc.)
+- **Severity order:** CRITICAL → HIGH → MEDIUM → LOW
 
 ### Score Calculation
 
