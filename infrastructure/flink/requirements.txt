@@ -1,4 +1,3 @@
-# Version range parsing used by the CVE join operator (_check_version_range)
 apache-flink==1.19.0
 packaging>=24.0
 psycopg2-binary>=2.9
