@@ -11,7 +11,7 @@ jobmanager.rpc.address: flink-jobmanager
 jobmanager.rpc.port: 6123
 jobmanager.memory.process.size: 1600m
 
-taskmanager.memory.process.size: 1728m
+taskmanager.memory.process.size: 2560m
 taskmanager.numberOfTaskSlots: 4
 
 # Default parallelism. Each operator in the topology runs with this many

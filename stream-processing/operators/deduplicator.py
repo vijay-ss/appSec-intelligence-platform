@@ -43,7 +43,7 @@ class DeduplicatorProcess(KeyedProcessFunction):
         )
         descriptor = ValueStateDescriptor("seen", Types.BOOLEAN())
         descriptor.enable_time_to_live(ttl_config)
-        self.seen = runtime_context.get_state(descriptor)
+        self._seen = runtime_context.get_state(descriptor)
     
     def process_element(self, value: str, ctx: "KeyedProcessFunction.Context"):
         """Yield the event if it hasn't been seen in the TTL window, else drop it."""

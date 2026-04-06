@@ -245,7 +245,7 @@ services:
         until curl -sf http://flink-jobmanager:8081/overview; do
           echo 'Waiting for Flink jobmanager...' && sleep 3;
         done &&
-        flink run --jobmanager flink-jobmanager:8081 --python /opt/flink/userjobs/topology_skeleton.py --pyFiles /opt/flink/userjobs -d &&
+        flink run --jobmanager flink-jobmanager:8081 --python /opt/flink/userjobs/topology.py --pyFiles /opt/flink/userjobs -d &&
         echo 'Topology submitted'
       "
     environment:

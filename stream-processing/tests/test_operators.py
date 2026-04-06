@@ -84,6 +84,42 @@ class TestVersionMatching:
         assert _version_is_affected("1.0.0", [], "") is False
 
 
+class TestVersionComparisonFallback:
+    """Tests for the string comparison fallback in _check_version_range."""
+
+    def test_less_than_multi_digit(self):
+        """Bug fix: string comparison fails on multi-digit numbers."""
+        assert _version_is_affected("2.9.0", [], "< 2.10.0") is True
+        assert _version_is_affected("2.10.0", [], "< 2.10.0") is False
+        assert _version_is_affected("2.11.0", [], "< 2.10.0") is False
+
+    def test_greater_than_multi_digit(self):
+        assert _version_is_affected("2.10.0", [], "> 2.9.0") is True
+        assert _version_is_affected("2.9.0", [], "> 2.9.0") is False
+        assert _version_is_affected("2.8.0", [], "> 2.9.0") is False
+
+    def test_greater_than_or_equal(self):
+        assert _version_is_affected("2.10.0", [], ">= 2.10.0") is True
+        assert _version_is_affected("2.9.0", [], ">= 2.10.0") is False
+
+    def test_less_than_or_equal(self):
+        assert _version_is_affected("2.10.0", [], "<= 2.10.0") is True
+        assert _version_is_affected("2.11.0", [], "<= 2.10.0") is False
+
+    def test_exact_match(self):
+        assert _version_is_affected("1.2.3", [], "== 1.2.3") is True
+        assert _version_is_affected("1.2.4", [], "== 1.2.3") is False
+
+    def test_not_equal(self):
+        assert _version_is_affected("1.2.4", [], "!= 1.2.3") is True
+        assert _version_is_affected("1.2.3", [], "!= 1.2.3") is False
+
+    def test_complex_range(self):
+        assert _version_is_affected("1.5.0", [], ">= 1.0, < 2.0") is True
+        assert _version_is_affected("2.0.0", [], ">= 1.0, < 2.0") is False
+        assert _version_is_affected("0.9.0", [], ">= 1.0, < 2.0") is False
+
+
 # ── Blast radius scorer tests ─────────────────────────────────────────────────
 
 class TestBlastRadiusScorer:
