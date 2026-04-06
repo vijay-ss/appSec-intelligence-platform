@@ -4,6 +4,9 @@ Blast Radius Scorer — enriches VulnerabilityMatchEvents with blast radius scor
 Fetches service metadata from the service registry (PostgreSQL via psycopg2)
 and computes a composite score to determine alert priority.
 
+Cache:
+  Bounded LRU with 10,000 entry max. Removes oldest entries when full.
+
 Composite score weights:
   CVSS score            40%  — base vulnerability severity
   Customer-facing       25%  — public-facing services have more exposure
@@ -18,6 +21,7 @@ Score thresholds:
 """
 import json
 import os
+from collections import OrderedDict
 from datetime import datetime, timezone, timedelta
 
 import psycopg2
@@ -30,6 +34,8 @@ except ImportError:
         pass
     RuntimeContext = object  # type: ignore[assignment, misc]
 
+
+MAX_CACHE_SIZE = 10000
 
 SLA_HOURS = {
     "CRITICAL": 4,
@@ -46,13 +52,9 @@ class BlastRadiusScorerMap(MapFunction):
       - sla_deadline
     """
     def open(self, runtime_context: RuntimeContext):
-        # Import here to avoid serialisation issues with PyFlink's worker processes.
-        import psycopg2
-        import psycopg2.extras
-        
         self._conn = psycopg2.connect(os.getenv("POSTGRES_URL", "postgresql://appsec:appsec@localhost:5432/appsec"))
         self._conn.autocommit = True
-        self._cache: dict = {}
+        self._cache: OrderedDict = OrderedDict()
     
     def close(self):
         if self._conn:
@@ -78,8 +80,9 @@ class BlastRadiusScorerMap(MapFunction):
         return json.dumps(match)
 
     def _get_service_metadata(self, service_id: str) -> dict:
-        """Fetch service metadata from PostgreSQL. Simple in-process cache."""
+        """Fetch service metadata from PostgreSQL. Bounded LRU cache."""
         if service_id in self._cache:
+            self._cache.move_to_end(service_id)
             return self._cache[service_id]
         
         try:
@@ -94,6 +97,9 @@ class BlastRadiusScorerMap(MapFunction):
             meta = _default_metadata(service_id)
         
         self._cache[service_id] = meta
+        if len(self._cache) > MAX_CACHE_SIZE:
+            self._cache.popitem(last=False)
+        
         return meta
     
     def _compute_score(self, match: dict, meta: dict) -> float:
