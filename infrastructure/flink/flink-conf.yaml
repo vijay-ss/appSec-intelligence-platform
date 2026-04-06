@@ -1,0 +1,73 @@
+# Flink cluster configuration for the AppSec Intelligence Platform.
+#
+# This file is mounted into both the jobmanager and taskmanager containers
+# at /opt/flink/conf/flink-conf.yaml, replacing the default config.
+#
+# Documentation: https://nightlies.apache.org/flink/flink-docs-release-1.20/docs/deployment/config/
+
+# ── Cluster ───────────────────────────────────────────────────────────────────
+
+jobmanager.rpc.address: flink-jobmanager
+jobmanager.rpc.port: 6123
+jobmanager.memory.process.size: 1600m
+
+taskmanager.memory.process.size: 2560m
+taskmanager.numberOfTaskSlots: 4
+
+# Default parallelism. Each operator in the topology runs with this many
+# parallel instances. 2 is appropriate for a laptop — increase for production.
+parallelism.default: 2
+
+# ── State backend: RocksDB ────────────────────────────────────────────────────
+# RocksDB stores keyed state (dependency graph MapState, deduplicator ValueState)
+# on disk rather than heap. Essential for the dep graph operator which can hold
+# hundreds of entries per service across dozens of services.
+#
+# Broadcast state (CVE broadcast map in cve_join.py) is ALWAYS heap-based
+# regardless of this setting — that is a Flink design constraint, not a
+# configuration choice. It is fine here because only ~200 CVEs/day are broadcast.
+
+state.backend: rocksdb
+state.backend.incremental: true
+
+# Local RocksDB data directory inside the taskmanager container.
+state.backend.rocksdb.localdir: /tmp/flink-rocksdb
+
+# ── Checkpointing ─────────────────────────────────────────────────────────────
+# Checkpoints are written to MinIO (S3-compatible) every 60 seconds.
+# If the job crashes and restarts, Flink replays from the last checkpoint —
+# no events are lost and no events are double-processed (exactly-once).
+#
+# The s3:// URI is handled by the flink-s3-fs-hadoop plugin added in the
+# Dockerfile. The plugin reads AWS_* env vars for credentials.
+
+state.checkpoints.dir: s3://flink-checkpoints/appsec
+state.savepoints.dir: s3://flink-checkpoints/savepoints
+
+# Keep the last 3 completed checkpoints on disk (useful for manual recovery).
+state.checkpoints.num-retained: 3
+
+# ── S3 / MinIO access ─────────────────────────────────────────────────────────
+# These point the S3 plugin at the local MinIO instance.
+# In production: remove s3.endpoint and s3.path.style.access.
+# The plugin reads AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY from env.
+
+s3.endpoint: http://minio:9000
+s3.path.style.access: true
+
+# ── Web UI ────────────────────────────────────────────────────────────────────
+rest.port: 8081
+rest.address: 0.0.0.0
+
+# ── Python / PyFlink ──────────────────────────────────────────────────────────
+# Path to the Python executable inside the worker container.
+# The base image installs Python 3 at /usr/bin/python3.
+python.executable: python3
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+# Reduce Flink's default log verbosity so operator logs are readable.
+# Operator-level logging (structlog) is separate and controlled by the Python code.
+logger.akka.level: WARNING
+logger.kafka.level: WARNING
+logger.hadoop.level: WARNING
+logger.zookeeper.level: ERROR

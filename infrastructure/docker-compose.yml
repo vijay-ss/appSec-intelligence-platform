@@ -189,7 +189,7 @@ services:
     build:
       context: ./flink
       dockerfile: Dockerfile
-    image: appsec-flink:1.20
+    image: appsec-flink:2.0
     ports:
       - "8081:8081"
     command: jobmanager
@@ -220,7 +220,7 @@ services:
     build:
       context: ./flink
       dockerfile: Dockerfile
-    image: appsec-flink:1.20
+    image: appsec-flink:2.0
     command: taskmanager
     environment:
       AWS_ACCESS_KEY_ID: minioadmin
@@ -239,19 +239,17 @@ services:
     build:
       context: ./flink
       dockerfile: Dockerfile
-    image: appsec-flink:1.20
+    image: appsec-flink:2.0
     command: >
       /bin/bash -c "
         until curl -sf http://flink-jobmanager:8081/overview; do
           echo 'Waiting for Flink jobmanager...' && sleep 3;
         done &&
-        flink run
-          --jobmanager flink-jobmanager:8081
-          --python /opt/flink/userjobs/topology.py
-          --pyFiles /opt/flink/userjobs
-          -d &&
+        flink run --jobmanager flink-jobmanager:8081 --python /opt/flink/userjobs/topology.py --pyFiles /opt/flink/userjobs -d &&
         echo 'Topology submitted'
       "
+    environment:
+      KAFKA_BROKERS: redpanda:9092
     volumes:
       - ../stream-processing:/opt/flink/userjobs:ro
     depends_on:

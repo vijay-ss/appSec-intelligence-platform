@@ -48,27 +48,27 @@ The nine tools are: `get_vulnerability_exposure`, `get_cve_details`, `get_affect
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│              INGESTION LAYER  (Go)                       │
+│              INGESTION LAYER  (Go)                      │
 │  NVD Poller · OSV Poller · GitHub Events Poller         │
-│  Archive Replayer · Synthetic Generator                  │
+│  Archive Replayer · Synthetic Generator                 │
 └──────────────────────┬──────────────────────────────────┘
                        │ Kafka (Redpanda)
 ┌──────────────────────▼──────────────────────────────────┐
-│           STREAM PROCESSING LAYER  (PyFlink)             │
-│  Normalise → Deduplicate → Dependency Graph              │
+│           STREAM PROCESSING LAYER  (PyFlink)            │
+│  Normalise → Deduplicate → Dependency Graph             │
 │  → CVE Join (Broadcast) → Blast Radius Score → Route    │
 └──────────────────────┬──────────────────────────────────┘
                        │ Kafka
 ┌──────────────────────▼──────────────────────────────────┐
-│              AI AGENT LAYER  (LangGraph)                 │
-│  Triage Agent · PR Risk Agent · Posture Agent            │
-│  Local: Ollama qwen2.5-coder:7b                          │
-│  Production: Anthropic Claude Sonnet                     │
+│              AI AGENT LAYER  (LangGraph)                │
+│  Triage Agent · PR Risk Agent · Posture Agent           │
+│  Local: Ollama qwen2.5-coder:7b                         │
+│  Production: Anthropic Claude Sonnet                    │
 └────────┬──────────────────────────┬─────────────────────┘
          │                          │
 ┌────────▼───────┐        ┌─────────▼──────────────────────┐
-│   MCP Server   │        │  Storage                        │
-│  (9 tools)     │        │  PostgreSQL · MinIO · Qdrant    │
+│   MCP Server   │        │  Storage                       │
+│  (9 tools)     │        │  PostgreSQL · MinIO · Qdrant   │
 └────────┬───────┘        └────────────────────────────────┘
          │
 ┌────────▼─────────────────────────────────────────────────┐
