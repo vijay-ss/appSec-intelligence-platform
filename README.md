@@ -561,7 +561,7 @@ AWS_SECRET_ACCESS_KEY=<secret>
 | http://localhost:3000 | Grafana | admin / admin |
 | http://localhost:8081 | Flink job manager UI | — |
 | http://localhost:9001 | MinIO console | minioadmin / minioadmin |
-| http://localhost:8080 | Redpanda console | — |
+| http://localhost:8083 | Redpanda console | — |
 | http://localhost:8090 | Scenario trigger UI | — |
 | http://localhost:9090 | Prometheus | — |
 
