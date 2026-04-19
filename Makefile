@@ -121,7 +121,7 @@ up:
 	@echo "Full stack starting. This may take several minutes on first run"
 	@echo "while Docker builds images and Ollama downloads models."
 	@echo ""
-	@echo "  Redpanda Console   http://localhost:8080"
+	@echo "  Redpanda Console   http://localhost:8083"
 	@echo "  Flink Dashboard    http://localhost:8081"
 	@echo "  MinIO Console      http://localhost:9001  (minioadmin / minioadmin)"
 	@echo "  Grafana            http://localhost:3000  (admin / admin)"

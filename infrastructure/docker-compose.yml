@@ -99,7 +99,8 @@ services:
     volumes:
       - qdrant_data:/qdrant/storage
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6333/readyz"]
+      # test: ["CMD", "curl", "-f", "http://localhost:6333/"]
+      test: ["CMD-SHELL", "bash -c 'cat < /dev/tcp/localhost/6333'"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -132,7 +133,8 @@ services:
     volumes:
       - ollama_data:/root/.ollama
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      # test: ["CMD", "curl", "-f", "http://localhost:11434/"]
+      test: ["CMD", "ollama", "list"]
       interval: 15s
       timeout: 10s
       retries: 5
@@ -421,7 +423,9 @@ services:
     environment:
       QDRANT_HOST: qdrant
       QDRANT_PORT: "6333"
+      QDRANT_URL: http://qdrant:6333
       OLLAMA_BASE_URL: http://ollama:11434
+      POSTGRES_URL: postgresql://appsec:appsec@postgres:5432/appsec
       EMBEDDING_PROVIDER: ollama
       EMBEDDING_MODEL: nomic-embed-text
       CORPUS_DAYS: "7"
