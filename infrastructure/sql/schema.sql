@@ -1,4 +1,3 @@
--- AppSec Intelligence Platform — PostgreSQL Schema
 -- Run automatically via docker-entrypoint-initdb.d on first container start.
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
@@ -37,8 +36,12 @@ CREATE TABLE IF NOT EXISTS vulnerability_matches (
 CREATE TABLE IF NOT EXISTS triage_reports (
     report_id               UUID        PRIMARY KEY,
     match_id                UUID        REFERENCES vulnerability_matches(match_id),
+    cve_id                  VARCHAR(50),
+    service_id              VARCHAR(200),
     exploitability          VARCHAR(20),
+    exploitability_verdict  VARCHAR(20),
     exploitability_rationale TEXT,
+    blast_radius_tier       VARCHAR(20),
     blast_radius_rationale  TEXT,
     remediation_action      TEXT,
     is_breaking_change      BOOLEAN     DEFAULT FALSE,

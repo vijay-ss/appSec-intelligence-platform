@@ -1,0 +1,5 @@
+qdrant-client>=1.12
+psycopg2-binary>=2.9
+langchain-ollama>=0.2
+langchain-openai>=0.2
+apscheduler>=3.10

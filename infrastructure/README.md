@@ -168,6 +168,14 @@ make models
 
 On Apple Silicon, Ollama uses Metal GPU acceleration automatically. On Linux with an NVIDIA GPU, uncomment the `deploy` section in `docker-compose.yml`.
 
+**Memory-constrained machines:** If the ~5GB model is too much alongside the rest of the stack, use Groq instead for chat inference — it's free and runs remotely. Set `LLM_PROVIDER=groq` in `.env` with your Groq API key. Ollama still needs to run for embeddings (`nomic-embed-text` is only ~270MB), but you can skip pulling the large chat model entirely:
+
+```bash
+# Pull only the embeddings model, skip the chat model
+docker compose -f infrastructure/docker-compose.yml exec ollama \
+  ollama pull nomic-embed-text
+```
+
 ---
 
 ### Prometheus + Grafana
